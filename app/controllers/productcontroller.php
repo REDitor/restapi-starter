@@ -4,6 +4,7 @@ namespace Controllers;
 
 use Exception;
 use Services\ProductService;
+use function Sodium\library_version_minor;
 
 class ProductController extends Controller
 {
@@ -17,23 +18,28 @@ class ProductController extends Controller
 
     public function getAll()
     {
-        // this code seems to have been lost
+        $offset = $_GET['offset'] ?? null; //optional
+        $limit = $_GET['limit'] ?? null;
+        $products = $this->service->getAll($offset, $limit);
+
+        $this->respond($products);
     }
 
     public function getOne($id)
     {
         $product = $this->service->getOne($id);
 
-        // we might need some kind of error checking that returns a 404 if the product is not found in the DB
-
-        $this->respond($product);
+        //Check
+        $product
+            ? $this->respond($product)
+            : $this->respondWithError(404, 'Product not found');
     }
 
     public function create()
     {
         try {
             $product = $this->createObjectFromPostedJson("Models\Product");
-            // something is missing. Shouldn't we update the product in the DB?
+            $this->service->insert($product);
 
         } catch (Exception $e) {
             $this->respondWithError(500, $e->getMessage());
@@ -44,6 +50,22 @@ class ProductController extends Controller
 
     public function update($id)
     {
-        // There is no code here
-    } 
+        $product = $this->service->getOne($id);
+
+        $product
+            ? $this->service->update($product, $id)
+            : $this->respondWithError(404, 'Product not found');
+
+        $this->respond($product);
+    }
+
+    public function delete($id) {
+        $product = $this->service->getOne($id);
+
+        $product
+            ? $this->service->delete($id)
+            : $this->respondWithError(404, 'Product could not be deleted, maybe it does not exist');
+
+        $this->respond($product);
+    }
 }
